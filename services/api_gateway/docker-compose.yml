@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  gateway:
+    build:
+      context: ../..
+      dockerfile: services/api_gateway/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=dev
+      - ALLOWED_ORIGINS=http://localhost:5173

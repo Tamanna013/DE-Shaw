@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  batch_beat:
+    build:
+      context: ../..
+      dockerfile: services/analytics_batch/Dockerfile
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+      
+  batch_worker:
+    build:
+      context: ../..
+      dockerfile: services/analytics_batch/Dockerfile
+    command: ["celery", "-A", "services.analytics_batch.infrastructure.celery_app", "worker", "--loglevel=info", "-B"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - db

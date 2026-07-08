@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: services/dashboard_backend/Dockerfile
+    ports:
+      - "8009:8009"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      - REDIS_URL=redis://redis:6379/0

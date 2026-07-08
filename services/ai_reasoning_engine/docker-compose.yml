@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: services/ai_reasoning_engine/Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      - SENTENCE_TRANSFORMERS_HOME=/app/.cache
