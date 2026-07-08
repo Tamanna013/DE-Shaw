@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "testlens-pytest"
+version = "0.1.0"
+description = "A pytest plugin that streams test execution metadata to TestLens"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "TestLens Engineering", email = "eng@testlens.io" }
+]
+dependencies = [
+    "pytest>=7.0.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.25.0"
+]
+
+[project.entry-points.pytest11]
+testlens = "testlens_pytest.plugin"

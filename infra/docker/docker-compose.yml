@@ -1,0 +1,167 @@
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-healthcheck: &python-healthcheck
+  test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+  interval: 10s
+  timeout: 5s
+  retries: 3
+  start_period: 15s
+
+services:
+  db:
+    image: ankane/pgvector:latest # PostgreSQL + pgvector extension
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testlens
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d testlens"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  # --- Microservices ---
+
+  api_gateway:
+    build:
+      context: ../../
+      dockerfile: services/api_gateway/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=dev
+      - ALLOWED_ORIGINS=http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck: *python-healthcheck
+    logging: *default-logging
+
+  auth:
+    build:
+      context: ../../
+      dockerfile: services/auth/Dockerfile
+    environment:
+      - ENV=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      - JWT_SECRET=dev-secret-key-do-not-use-in-prod
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+
+  user_management:
+    build:
+      context: ../../
+      dockerfile: services/user_management/Dockerfile
+    environment:
+      - ENV=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+
+  failure_analyzer:
+    build:
+      context: ../../
+      dockerfile: services/failure_analyzer/Dockerfile
+    environment:
+      - ENV=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+
+  failure_worker:
+    build:
+      context: ../../
+      dockerfile: services/failure_analyzer/Dockerfile
+    command: ["celery", "-A", "services.failure_analyzer.infrastructure.celery_app", "worker", "--loglevel=info"]
+    environment:
+      - ENV=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+
+  dashboard_backend:
+    build:
+      context: ../../
+      dockerfile: services/dashboard_backend/Dockerfile
+    environment:
+      - ENV=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *default-logging
+
+  notifications_api:
+    build:
+      context: ../../
+      dockerfile: services/notifications/Dockerfile
+    environment:
+      - ENV=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+
+  outbox_consumer:
+    build:
+      context: ../../
+      dockerfile: services/notifications/Dockerfile
+    command: ["python", "-m", "services.notifications.infrastructure.outbox_consumer_main"]
+    environment:
+      - ENV=dev
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      api_gateway:
+        condition: service_healthy
+    logging: *default-logging

@@ -1,0 +1,22 @@
+version: '3.8'
+
+# Rename this file to docker-compose.override.yml to enable local hot-reloading
+# Compose will automatically merge these overrides on `docker-compose up`.
+
+services:
+  api_gateway:
+    volumes:
+      - ../../services/api_gateway:/app/services/api_gateway
+      - ../../shared:/app/shared
+    command: ["uvicorn", "services.api_gateway.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  frontend:
+    # Use the builder target for local dev instead of the nginx production build
+    build:
+      target: builder
+    command: ["npm", "run", "dev", "--", "--host"]
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../../frontend:/app
+      - /app/node_modules # prevent local node_modules from overwriting container's
