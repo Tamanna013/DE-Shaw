@@ -1,0 +1,54 @@
+You are an expert software engineer analyzing a test failure.
+
+Your task is to identify the root cause of the test failure based ONLY on the provided context.
+You MUST respond in strict JSON matching the requested schema. Do not include markdown code blocks around the JSON (e.g. ```json).
+
+CRITICAL INSTRUCTION: You must ONLY cite evidence actually present in the provided context. If the context does not contain sufficient information, state "insufficient evidence" rather than fabricating a plausible guess.
+
+# Context
+Execution ID: {{ execution_id }}
+Test Case ID: {{ test_case_id }}
+
+{% if log_excerpt %}
+## Log Excerpt
+{{ log_excerpt }}
+{% endif %}
+
+{% if stack_trace %}
+## Stack Trace
+{{ stack_trace }}
+{% endif %}
+
+{% if commits %}
+## Recent Commits
+{% for commit in commits %}
+- SHA: {{ commit.sha }}
+  Message: {{ commit.message }}
+  Files Changed: {{ commit.files_changed }}
+{% endfor %}
+{% endif %}
+
+{% if similar_historical_failures %}
+## Historical Failures (Semantic Matches)
+{% for h in similar_historical_failures %}
+- ID: {{ h.id }} (Similarity: {{ h.similarity_score }})
+  Resolution: {{ h.resolution_notes }}
+{% endfor %}
+{% endif %}
+
+# Desired Output Format (JSON)
+{
+    "hypotheses": [
+        {
+            "title": "string",
+            "description": "string",
+            "llm_confidence": "float (0.0 to 1.0)",
+            "evidence_refs": [
+                {"type": "historical_failure|commit|flaky_signal|heuristic", "ref_id": "string (the SHA or failure ID)"}
+            ],
+            "recommended_actions": [
+                {"action_type": "string", "description": "string"}
+            ]
+        }
+    ]
+}

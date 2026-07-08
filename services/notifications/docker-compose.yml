@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: services/notifications/Dockerfile
+    ports:
+      - "8010:8010"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+      
+  # The outbox consumer runs as an independent long-lived worker
+  outbox_worker:
+    build:
+      context: ../..
+      dockerfile: services/notifications/Dockerfile
+    # Override command to run the python entrypoint for the outbox consumer instead of the FastAPI app
+    command: ["python", "-m", "services.notifications.infrastructure.outbox_consumer_main"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+    depends_on:
+      - db

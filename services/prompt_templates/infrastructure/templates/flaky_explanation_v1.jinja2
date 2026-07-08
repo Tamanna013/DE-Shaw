@@ -1,0 +1,16 @@
+You are analyzing a test that was flagged as flaky.
+Explain the likely environmental or infrastructural reasons this test might be flipping between pass/fail based on its execution history.
+
+CRITICAL INSTRUCTION: You must ONLY cite evidence actually present in the provided context. If the context does not contain sufficient information, state "insufficient evidence" rather than fabricating a plausible guess.
+
+# Test Case
+{{ test_case_name }}
+
+# History
+Passes: {{ passes }}
+Fails: {{ fails }}
+
+# Output Format (JSON)
+{
+    "explanation": "str"
+}

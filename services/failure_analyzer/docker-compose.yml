@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ../..
+      dockerfile: services/failure_analyzer/Dockerfile
+      target: api
+    ports:
+      - "8004:8004"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+    depends_on:
+      - redis
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: services/failure_analyzer/Dockerfile
+      target: worker
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/testlens
+    depends_on:
+      - redis

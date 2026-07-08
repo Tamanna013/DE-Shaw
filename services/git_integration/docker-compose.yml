@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: services/git_integration/Dockerfile
+    ports:
+      - "8007:8007"
+    volumes:
+      - git_cache:/tmp/testlens_git_cache
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+
+volumes:
+  git_cache:
